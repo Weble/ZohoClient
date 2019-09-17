@@ -1,0 +1,6 @@
+.idea
+.env
+vendor
+docs
+test.php
+tests/config.json
