@@ -1,0 +1,29 @@
+{
+    "name": "weble/zohoclient",
+    "description": "Zoho API Client for oAuth auth and common tasks - PHP SDK",
+    "license": "MIT",
+    "keywords": ["zoho", "api", "oauth2"],
+    "authors": [
+        {
+            "name": "Daniele Rosario",
+            "email": "daniele@weble.it"
+        }
+    ],
+    "require": {
+        "php" : ">=7.0.0",
+        "guzzlehttp/guzzle": "~6.0",
+        "tightenco/collect": "^5.7",
+        "psr/cache": "^1.0",
+        "bentools/guzzle-throttle-middleware": "^0.4.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "7.*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Weble\\ZohoClient\\": "src"
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
