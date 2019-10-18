@@ -3,6 +3,7 @@
     "description": "Zoho API Client for oAuth auth and common tasks - PHP SDK",
     "license": "MIT",
     "keywords": ["zoho", "api", "oauth2"],
+    "type": "library",
     "authors": [
         {
             "name": "Daniele Rosario",
@@ -12,7 +13,7 @@
     "require": {
         "php" : ">=7.0.0",
         "guzzlehttp/guzzle": "~6.0",
-        "tightenco/collect": "^5.7",
+        "tightenco/collect": "^6.0",
         "psr/cache": "^1.0",
         "bentools/guzzle-throttle-middleware": "^0.4.0"
     },

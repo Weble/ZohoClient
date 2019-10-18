@@ -398,4 +398,31 @@ class OAuthClient
 
         return null;
     }
+
+
+    public function euRegion()
+    {
+        $this->dc = OAuthClient::DC_EU;
+
+        return $this;
+    }
+
+    public function inRegion()
+    {
+        $this->dc = OAuthClient::DC_IN;
+
+        return $this;
+    }
+
+    public function usRegion()
+    {
+        $this->dc = OAuthClient::DC_US;
+        return $this;
+    }
+
+    public function cnRegion()
+    {
+        $this->dc = OAuthClient::DC_CN;
+        return $this;
+    }
 }
