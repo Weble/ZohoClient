@@ -229,7 +229,7 @@ class OAuthClient
             throw new ApiError(@$data->error);
         }
 
-        $this->setAccessToken($data->access_token, $data->expires_in_sec);
+        $this->setAccessToken($data->access_token, $data->expires_in_sec ?? $data->expires_in ?? 3600);
 
         return $data->access_token;
     }
