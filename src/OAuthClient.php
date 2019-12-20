@@ -12,14 +12,6 @@ use Weble\ZohoClient\Exception\GrantCodeNotSetException;
 
 class OAuthClient
 {
-    const OAUTH_GRANT_URL_US = "https://accounts.zoho.com/oauth/v2/auth";
-    const OAUTH_GRANT_URL_EU = "https://accounts.zoho.eu/oauth/v2/auth";
-    const OAUTH_GRANT_URL_CN = "https://accounts.zoho.cn/oauth/v2/auth";
-
-    const OAUTH_API_URL_US = "https://accounts.zoho.com/oauth/v2/token";
-    const OAUTH_API_URL_EU = "https://accounts.zoho.eu/oauth/v2/token";
-    const OAUTH_API_URL_CN = "https://accounts.zoho.cn/oauth/v2/token";
-
     /** @var string */
     protected $region = 'us';
 
@@ -32,7 +24,7 @@ class OAuthClient
     /** @var string|null */
     protected $redirectUri;
 
-    /** @var array */
+    /** @var array<string> */
     protected $scopes = ['AaaServer.profile.READ'];
 
     /** @var bool */
@@ -59,7 +51,7 @@ class OAuthClient
     /** @var Cache\CacheItemPoolInterface|null */
     protected $cache;
 
-    /** @var array */
+    /** @var array<string> */
     protected $availableRegions = [];
 
     public function __construct(string $clientId, string $clientSecret)
@@ -74,10 +66,10 @@ class OAuthClient
         if (count($this->availableRegions) <= 0) {
             try {
                 $response = $this->client->get('https://accounts.zoho.com/oauth/serverinfo');
-                $data = json_decode($response->getBody());
+                $data = json_decode($response->getBody(), true);
 
                 if (isset($data['locations'])) {
-                    $this->availableRegions = $data['locations'];
+                    $this->availableRegions = (array) $data['locations'];
                 }
             } catch (ClientException $e) {
                 $this->availableRegions = [
@@ -256,10 +248,10 @@ class OAuthClient
         $data = json_decode($response->getBody());
 
         if (!isset($data->access_token)) {
-            throw new ApiError(@$data->error);
+            throw new ApiError($data->error ?? 'Generic Error');
         }
 
-        $this->setAccessToken($data->access_token, $data->expires_in_sec ?? $data->expires_in ?? 3600);
+        $this->setAccessToken($data->access_token, $data->expires_in_sec ?? ($data->expires_in ?? 3600));
 
         return $data->access_token;
     }
@@ -270,7 +262,7 @@ class OAuthClient
             return $this->refreshToken;
         }
 
-        if (!$this->cache) {
+        if ($this->cache === null) {
             $this->generateTokens();
 
             if (!$this->refreshToken) {
@@ -311,6 +303,8 @@ class OAuthClient
                     'token' => $refreshToken
                 ]
             ]);
+
+            $this->setRefreshToken('');
         } catch (ClientException $e) {
             $body = $e->getResponse()->getBody()->getContents();
             throw new ApiError($body, $e->getCode());
@@ -324,7 +318,7 @@ class OAuthClient
         $this->accessToken = $token;
         $this->accessTokenExpiration = (new \DateTime())->add(new \DateInterval('PT'.$expiresInSeconds.'S'));
 
-        if (!$this->cache) {
+        if ($this->cache === null) {
             return $this;
         }
 
@@ -340,7 +334,7 @@ class OAuthClient
         return $this;
     }
 
-    public function setRefreshToken(string $token, int $expiresInSeconds = 3600): self
+    public function setRefreshToken(string $token): self
     {
         $this->refreshToken = $token;
 
@@ -352,7 +346,6 @@ class OAuthClient
             $cachedToken = $this->cache->getItem('zoho_crm_refresh_token');
 
             $cachedToken->set($token);
-            $cachedToken->expiresAfter($expiresInSeconds);
             $this->cache->save($cachedToken);
         } catch (InvalidArgumentException $e) {
 
@@ -390,7 +383,7 @@ class OAuthClient
         $this->setAccessToken($data->access_token ?? '', $data->expires_in_sec ?? $data->expires_in ?? 3600);
 
         if (isset($data->refresh_token)) {
-            $this->setRefreshToken($data->refresh_token, $data->expires_in_sec ?? $data->expires_in ?? 3600);
+            $this->setRefreshToken($data->refresh_token);
         }
 
         return $this;
@@ -398,14 +391,25 @@ class OAuthClient
 
     public function getGrantCodeConsentUrl(): string
     {
-        return $this->getOAuthGrantUrl().'?'.http_build_query([
-                'access_type' => $this->offlineMode ? 'offline' : 'online',
-                'client_id' => $this->clientId,
-                'state' => $this->state,
-                'redirect_uri' => $this->redirectUri,
-                'response_type' => 'code',
-                'scope' => implode(',', $this->scopes)
-            ]);
+        $query = [
+            'access_type' => $this->offlineMode ? 'offline' : 'online',
+            'client_id' => $this->clientId,
+            'state' => $this->state,
+            'redirect_uri' => $this->redirectUri,
+            'response_type' => 'code',
+            'scope' => implode(',', $this->scopes)
+        ];
+
+        // In case we don't have a refresh token, and we need to get one (offline mode),
+        // if the user has already logged in, we already got the refresh token previously, and we won't get
+        // another one unless we force a new consent.
+        // Beware that the max number of refresh tokens is 20, and creating a 21st will delete the first one making
+        // it unusable, so STORE the refresh token the first time!
+        if ($this->offlineMode() && !$this->refreshToken) {
+            $query['prompt'] = 'consent';
+        }
+
+        return $this->getOAuthGrantUrl().'?'.http_build_query($query);
     }
 
     public static function parseGrantTokenFromUrl(UriInterface $uri): ?string

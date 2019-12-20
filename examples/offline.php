@@ -10,19 +10,7 @@ $client = new \Weble\ZohoClient\OAuthClient(getenv('CLIENT_ID_OFFLINE'), getenv(
 $client->setRedirectUri(getenv('REDIRECT_URI_OFFLINE'));
 $client->offlineMode();
 $client->useCache(new \Cache\Adapter\PHPArray\ArrayCachePool());
-
-switch (getenv('REGION')) {
-    case 'cn':
-        $client->cnRegion();
-        break;
-    case 'eu':
-        $client->euRegion();
-        break;
-    case 'us':
-    default:
-        $client->usRegion();
-        break;
-}
+$client->setRegion(getenv('REGION'));
 
 $code = $_REQUEST['code'] ?? false;
 

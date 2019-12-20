@@ -11,18 +11,8 @@ $client->setRedirectUri(getenv('REDIRECT_URI'));
 $client->onlineMode();
 $client->useCache(new \Cache\Adapter\PHPArray\ArrayCachePool());
 
-switch (getenv('REGION')) {
-    case 'cn':
-        $client->cnRegion();
-        break;
-    case 'eu':
-        $client->euRegion();
-        break;
-    case 'us':
-    default:
-        $client->usRegion();
-        break;
-}
+$client->setRegion(getenv('REGION'));
+
 $code = $_REQUEST['code'] ?? false;
 
 if ($code) {
@@ -32,8 +22,6 @@ if ($code) {
     } catch (\Weble\ZohoClient\Exception\ApiError $e) {
         var_dump($e);
     }
-
-    i
 
     ?>
     <div>
