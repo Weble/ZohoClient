@@ -20,6 +20,7 @@ $client = new \Weble\ZohoClient\OAuthClient('{CLIENT_ID}', '{CLIENT_SECRET}');
 $client->setRefreshToken('{REFRESH_TOKEN}');
 $client->setRegion(\Weble\ZohoClient\Enums\Region::us());
 $client->offlineMode();
+$client->useCache($yourPSR6CachePool);
 
 // Done!
 $accessToken = $client->getAccessToken();
