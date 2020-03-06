@@ -1,4 +1,4 @@
-# Zoho API OAuth v2 Client - PHP SDK
+# Zoho API OAuth Client - PHP SDK
 
 This Library is a SDK in PHP that simplifies the usage of the Zoho Apis, providing a simple client to deal
 with the OAuth2 implementation, as described here: [https://www.zoho.com/accounts/protocol/oauth.html](https://www.zoho.com/accounts/protocol/oauth.html)
@@ -12,11 +12,29 @@ any zoho api you need.
 composer require weble/zohoclient 
 ```
 
+## Example Usage (Offline Mode)
+```php
+require_once './vendor/autoload.php';
+
+$client = new \Weble\ZohoClient\OAuthClient('{CLIENT_ID}', '{CLIENT_SECRET}');
+$client->setRefreshToken('{REFRESH_TOKEN}');
+$client->setRegion(\Weble\ZohoClient\Enums\Region::us());
+$client->offlineMode();
+
+// Done!
+$accessToken = $client->getAccessToken();
+
+// Check if it's expired
+$isExpired = $client->accessTokenExpired();
+
+```
+
 ## Example Usage (Online Mode)
 ```php
 require_once './vendor/autoload.php';
 
 $client = new \Weble\ZohoClient\OAuthClient('{CLIENT_ID}', '{CLIENT_SECRET}');
+$client->setRegion(\Weble\ZohoClient\Enums\Region::us());
 $client->setRedirectUri('{REDIRECT_URI_OF_YOUR_APP}');
 $client->onlineMode();
 
@@ -35,6 +53,7 @@ $accessToken = $client->getAccessToken();
 $isExpired = $client->accessTokenExpired();
 
 ```
+
 
 ## Modes
 Zoho OAuth v2 provides two main ways to obtain an access token:
