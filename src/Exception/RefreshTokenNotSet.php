@@ -2,7 +2,7 @@
 
 namespace Weble\ZohoClient\Exception;
 
-class ApiError extends \Exception
+class RefreshTokenNotSet extends \Exception
 {
 
 }

@@ -1,8 +1,9 @@
 {
   "client_id" : "",
   "client_secret": "",
-  "grant_token": "",
+  "grant_code": "",
   "refresh_token" : "",
   "access_token": "",
-  "auth_token": ""
+  "auth_token": "",
+  "region": "us"
 }
