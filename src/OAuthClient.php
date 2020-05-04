@@ -282,7 +282,7 @@ class OAuthClient
      */
     public function generateTokens(): self
     {
-        if ($this->hasRefreshToken()) {
+        if ($this->hasRefreshToken() && $this->offlineMode === true) {
             try {
                 $this->refreshAccessToken();
                 return $this;
