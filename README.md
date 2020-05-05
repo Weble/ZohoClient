@@ -1,5 +1,9 @@
 # Zoho API OAuth Client - PHP SDK
 
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/weble/zohoclient.svg?style=flat-square)](https://packagist.org/packages/weble/zohoclient)
+[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/weble/zohoclient/run-tests?label=tests&style=flat-square)](https://github.com/weble/zohoclient/actions?query=workflow%3Arun-tests)
+[![Total Downloads](https://img.shields.io/packagist/dt/weble/zohoclient.svg?style=flat-square)](https://packagist.org/packages/weble/zohoclient)
+
 This Library is a SDK in PHP that simplifies the usage of the Zoho Apis, providing a simple client to deal
 with the OAuth2 implementation, as described here: [https://www.zoho.com/accounts/protocol/oauth.html](https://www.zoho.com/accounts/protocol/oauth.html)
 

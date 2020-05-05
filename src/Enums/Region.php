@@ -24,6 +24,6 @@ class Region extends Enum
         'us' => '.com',
         'cn' => '.com.cn',
         'in' => '.in',
-        'au' => '.com.au'
+        'au' => '.com.au',
     ];
 }

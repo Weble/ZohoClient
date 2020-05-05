@@ -81,30 +81,35 @@ class OAuthClient
     public function setRegion(Region $region): self
     {
         $this->region = $region;
+
         return $this;
     }
 
     public function setGrantCode(string $grantCode): self
     {
         $this->grantCode = $grantCode;
+
         return $this;
     }
 
     public function setState(string $state): self
     {
         $this->state = $state;
+
         return $this;
     }
 
     public function setScopes(array $scopes): self
     {
         $this->scopes = $scopes;
+
         return $this;
     }
 
     public function onlineMode(): self
     {
         $this->offlineMode = false;
+
         return $this;
     }
 
@@ -115,18 +120,20 @@ class OAuthClient
 
     public function isOnline(): bool
     {
-        return !$this->offlineMode;
+        return ! $this->offlineMode;
     }
 
     public function setRedirectUri(string $redirectUri): self
     {
         $this->redirectUri = $redirectUri;
+
         return $this;
     }
 
     public function useCache(Cache\CacheItemPoolInterface $cacheItemPool): self
     {
         $this->cache = $cacheItemPool;
+
         return $this;
     }
 
@@ -152,10 +159,10 @@ class OAuthClient
             return $this->accessToken;
         }
 
-        if (!$this->cache) {
+        if (! $this->cache) {
             $this->generateTokens();
 
-            if (!$this->accessToken) {
+            if (! $this->accessToken) {
                 throw new CannotGenerateAccessToken();
             }
 
@@ -172,16 +179,15 @@ class OAuthClient
 
             $this->generateTokens();
 
-            if (!$this->accessToken) {
+            if (! $this->accessToken) {
                 throw new CannotGenerateAccessToken();
             }
 
             return $this->accessToken;
-
         } catch (InvalidArgumentException $e) {
             $this->generateTokens();
 
-            if (!$this->accessToken) {
+            if (! $this->accessToken) {
                 throw new CannotGenerateAccessToken();
             }
 
@@ -205,7 +211,6 @@ class OAuthClient
             $cachedToken->expiresAfter($expiresInSeconds);
             $this->cache->save($cachedToken);
         } catch (InvalidArgumentException $e) {
-
         }
 
         return $this;
@@ -213,7 +218,7 @@ class OAuthClient
 
     public function accessTokenExpired(): bool
     {
-        if (!$this->accessTokenExpiration) {
+        if (! $this->accessTokenExpiration) {
             return false;
         }
 
@@ -230,7 +235,7 @@ class OAuthClient
      */
     public function refreshAccessToken(): string
     {
-        if (!$this->hasRefreshToken()) {
+        if (! $this->hasRefreshToken()) {
             try {
                 if ($this->generateTokens()->hasAccessToken()) {
                     return $this->accessToken;
@@ -243,15 +248,15 @@ class OAuthClient
         $response = $this->client->post($this->getOAuthApiUrl(), [
             'query' => [
                 'refresh_token' => $this->getRefreshToken(),
-                'client_id'     => $this->clientId,
+                'client_id' => $this->clientId,
                 'client_secret' => $this->clientSecret,
-                'grant_type'    => 'refresh_token'
-            ]
+                'grant_type' => 'refresh_token',
+            ],
         ]);
 
         $data = json_decode($response->getBody());
 
-        if (!isset($data->access_token)) {
+        if (! isset($data->access_token)) {
             if (isset($data->error) && $data->error === 'access_denied') {
                 throw new AccessDeniedException();
             }
@@ -282,35 +287,35 @@ class OAuthClient
      */
     public function generateTokens(): self
     {
-        if ($this->hasRefreshToken()) {
+        if ($this->hasRefreshToken() && $this->offlineMode === true) {
             try {
                 $this->refreshAccessToken();
+
                 return $this;
             } catch (CannotGenerateRefreshToken $e) {
-
             } catch (RefreshTokenNotSet $e) {
-
             }
         }
 
-        if (!$this->grantCode) {
+        if (! $this->grantCode) {
             throw new GrantCodeNotSetException();
         }
 
         try {
             $response = $this->client->post($this->getOAuthApiUrl(), [
                 'query' => [
-                    'code'          => $this->grantCode,
-                    'client_id'     => $this->clientId,
+                    'code' => $this->grantCode,
+                    'client_id' => $this->clientId,
                     'client_secret' => $this->clientSecret,
-                    'state'         => $this->state,
-                    'grant_type'    => 'authorization_code',
-                    'scope'         => implode(",", $this->scopes),
-                    'redirect_uri'  => $this->redirectUri
-                ]
+                    'state' => $this->state,
+                    'grant_type' => 'authorization_code',
+                    'scope' => implode(",", $this->scopes),
+                    'redirect_uri' => $this->redirectUri,
+                ],
             ]);
         } catch (ClientException $e) {
             $body = $e->getResponse()->getBody()->getContents();
+
             throw new ApiError($body, $e->getCode());
         }
 
@@ -353,7 +358,7 @@ class OAuthClient
         if ($this->cache === null) {
             $this->generateTokens();
 
-            if (!$this->refreshToken) {
+            if (! $this->refreshToken) {
                 throw new ApiError('Cannot generate a refresh Token');
             }
         }
@@ -368,12 +373,11 @@ class OAuthClient
 
             $this->generateTokens();
 
-            if (!$this->refreshToken) {
+            if (! $this->refreshToken) {
                 throw new CannotGenerateRefreshToken();
             }
 
             return $this->refreshToken;
-
         } catch (InvalidArgumentException $e) {
             return $this->generateTokens()->getRefreshToken();
         }
@@ -383,7 +387,7 @@ class OAuthClient
     {
         $this->refreshToken = $token;
 
-        if (!$this->cache) {
+        if (! $this->cache) {
             return $this;
         }
 
@@ -393,7 +397,6 @@ class OAuthClient
             $cachedToken->set($token);
             $this->cache->save($cachedToken);
         } catch (InvalidArgumentException $e) {
-
         }
 
         return $this;
@@ -416,13 +419,14 @@ class OAuthClient
         try {
             $this->client->post($this->getOAuthApiUrl() . '/revoke', [
                 'query' => [
-                    'token' => $refreshToken
-                ]
+                    'token' => $refreshToken,
+                ],
             ]);
 
             $this->setRefreshToken('');
         } catch (ClientException $e) {
             $body = $e->getResponse()->getBody()->getContents();
+
             throw new ApiError($body, $e->getCode());
         }
 
@@ -432,12 +436,12 @@ class OAuthClient
     public function getGrantCodeConsentUrl(): string
     {
         $query = [
-            'access_type'   => $this->offlineMode ? 'offline' : 'online',
-            'client_id'     => $this->clientId,
-            'state'         => $this->state,
-            'redirect_uri'  => $this->redirectUri,
+            'access_type' => $this->offlineMode ? 'offline' : 'online',
+            'client_id' => $this->clientId,
+            'state' => $this->state,
+            'redirect_uri' => $this->redirectUri,
             'response_type' => 'code',
-            'scope'         => implode(',', $this->scopes)
+            'scope' => implode(',', $this->scopes),
         ];
 
         // In case we don't have a refresh token, and we need to get one (offline mode),
@@ -445,7 +449,7 @@ class OAuthClient
         // another one unless we force a new consent.
         // Beware that the max number of refresh tokens is 20, and creating a 21st will delete the first one making
         // it unusable, so STORE the refresh token the first time!
-        if ($this->offlineMode() && !$this->refreshToken) {
+        if ($this->offlineMode() && ! $this->refreshToken) {
             $query['prompt'] = 'consent';
         }
 
@@ -455,6 +459,7 @@ class OAuthClient
     public function offlineMode(): self
     {
         $this->offlineMode = true;
+
         return $this;
     }
 

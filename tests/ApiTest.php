@@ -2,12 +2,12 @@
 
 namespace Webleit\ZohoCrmApi\Test;
 
+use Cache\Adapter\Filesystem\FilesystemCachePool;
+use League\Flysystem\Adapter\Local;
+use League\Flysystem\Filesystem;
 use PHPUnit\Framework\TestCase;
 use Weble\ZohoClient\Enums\Region;
 use Weble\ZohoClient\OAuthClient;
-use League\Flysystem\Adapter\Local;
-use League\Flysystem\Filesystem;
-use Cache\Adapter\Filesystem\FilesystemCachePool;
 
 class ApiTest extends TestCase
 {
@@ -19,22 +19,29 @@ class ApiTest extends TestCase
     /**
      * setup
      */
-    public static function setUpBeforeClass()
+    public static function setUpBeforeClass(): void
     {
-
         $authFile = __DIR__ . '/config.example.json';
         if (file_exists(__DIR__ . '/config.json')) {
             $authFile = __DIR__ . '/config.json';
         }
 
         $auth = json_decode(file_get_contents($authFile));
+
+        foreach ($auth as $key => $value) {
+            $envValue = $_SERVER[strtoupper('ZOHO_' . $key)] ?? null;
+            if ($envValue) {
+                $auth->$key = $envValue;
+            }
+        }
+
         $region = Region::us();
         if ($auth->region) {
             $region = Region::make($auth->region);
         }
 
-        $filesystemAdapter = new Local(sys_get_temp_dir());
-        $filesystem        = new Filesystem($filesystemAdapter);
+        $filesystemAdapter = new Local(__DIR__ . '/temp');
+        $filesystem = new Filesystem($filesystemAdapter);
         $pool = new FilesystemCachePool($filesystem);
 
         $client = new OAuthClient($auth->client_id, $auth->client_secret);
