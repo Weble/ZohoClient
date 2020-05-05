@@ -40,7 +40,7 @@ class ApiTest extends TestCase
             $region = Region::make($auth->region);
         }
 
-        $filesystemAdapter = new Local(sys_get_temp_dir());
+        $filesystemAdapter = new Local(__DIR__ . '/temp');
         $filesystem = new Filesystem($filesystemAdapter);
         $pool = new FilesystemCachePool($filesystem);
 
