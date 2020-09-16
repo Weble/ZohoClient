@@ -2,6 +2,7 @@
 
 namespace Weble\ZohoClient;
 
+use DateTime;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ClientException;
 use Psr\Cache;
@@ -222,7 +223,12 @@ class OAuthClient
             return false;
         }
 
-        return ($this->accessTokenExpiration < new \DateTime());
+        return ($this->accessTokenExpiration < (new \DateTime()));
+    }
+
+    public function accessTokenExpiration(): ?DateTime
+    {
+        return $this->accessTokenExpiration;
     }
 
     /**
