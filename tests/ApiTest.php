@@ -71,4 +71,13 @@ class ApiTest extends TestCase
         $accessToken = self::$client->refreshAccessToken();
         $this->assertTrue(strlen($accessToken) > 0);
     }
+
+    /**
+     * @test
+     */
+    public function hasAccessTokenExpiration()
+    {
+        $accessToken = self::$client->refreshAccessToken();
+        $this->assertNotNull(self::$client->accessTokenExpiration());
+    }
 }
