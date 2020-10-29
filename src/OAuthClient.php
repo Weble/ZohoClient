@@ -2,9 +2,9 @@
 
 namespace Weble\ZohoClient;
 
-use DateTime;
-use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ClientException;
+use League\OAuth2\Client\Provider\Exception\IdentityProviderException;
+use League\OAuth2\Client\Token\AccessToken;
 use Psr\Cache;
 use Psr\Cache\InvalidArgumentException;
 use Psr\Http\Message\UriInterface;
@@ -16,6 +16,9 @@ use Weble\ZohoClient\Exception\CannotGenerateRefreshToken;
 use Weble\ZohoClient\Exception\GrantCodeNotSetException;
 use Weble\ZohoClient\Exception\InvalidGrantCodeException;
 use Weble\ZohoClient\Exception\RefreshTokenNotSet;
+use Weble\ZohoClient\Provider\ZohoAccessToken;
+use Weble\ZohoClient\Provider\ZohoProvider;
+use Weble\ZohoClient\Provider\ZohoUser;
 
 class OAuthClient
 {
@@ -24,8 +27,6 @@ class OAuthClient
 
     /** @var Region */
     protected $region;
-    /** @var Client */
-    protected $client;
     /** @var string|null */
     protected $grantCode;
     /** @var string|null */
@@ -40,10 +41,8 @@ class OAuthClient
     protected $clientSecret;
     /** @var string */
     protected $clientId;
-    /** @var string|null */
+    /** @var ZohoAccessToken */
     protected $accessToken;
-    /** @var \DateTime|null */
-    protected $accessTokenExpiration;
     /** @var string|null */
     protected $refreshToken;
     /** @var Cache\CacheItemPoolInterface|null */
@@ -51,34 +50,43 @@ class OAuthClient
 
     public function __construct(string $clientId, string $clientSecret)
     {
-        $this->client = new Client();
         $this->clientId = $clientId;
         $this->clientSecret = $clientSecret;
-
         $this->region = Region::us();
     }
 
+    /**
+     * Parse Grant Token from URL
+     *
+     * @param UriInterface $uri
+     * @return string|null
+     */
     public static function parseGrantTokenFromUrl(UriInterface $uri): ?string
     {
-        $query = $uri->getQuery();
-        $data = explode('&', $query);
-
-        foreach ($data as &$d) {
-            $d = explode("=", $d);
-        }
-
-        if (isset($data['code'])) {
-            return $data['code'];
+        parse_str($uri->getQuery(), $output);
+        if (isset($output['code'])) {
+            return $output['code'];
         }
 
         return null;
     }
 
+    /**
+     * Get the Zoho Region
+     *
+     * @return Region
+     */
     public function getRegion(): Region
     {
         return $this->region;
     }
 
+    /**
+     * Set the Zoho Region
+     *
+     * @param Region $region
+     * @return self
+     */
     public function setRegion(Region $region): self
     {
         $this->region = $region;
@@ -86,6 +94,12 @@ class OAuthClient
         return $this;
     }
 
+    /**
+     * Set the Grant Code
+     *
+     * @param string $grantCode
+     * @return self
+     */
     public function setGrantCode(string $grantCode): self
     {
         $this->grantCode = $grantCode;
@@ -93,6 +107,12 @@ class OAuthClient
         return $this;
     }
 
+    /**
+     * Set the State
+     *
+     * @param string $state
+     * @return self
+     */
     public function setState(string $state): self
     {
         $this->state = $state;
@@ -100,6 +120,12 @@ class OAuthClient
         return $this;
     }
 
+    /**
+     * Set the Scopes
+     *
+     * @param array $scopes
+     * @return self
+     */
     public function setScopes(array $scopes): self
     {
         $this->scopes = $scopes;
@@ -107,6 +133,11 @@ class OAuthClient
         return $this;
     }
 
+    /**
+     * Set Offline Mode
+     *
+     * @return self
+     */
     public function onlineMode(): self
     {
         $this->offlineMode = false;
@@ -114,16 +145,32 @@ class OAuthClient
         return $this;
     }
 
+    /**
+     * Check if is offline
+     *
+     * @return boolean
+     */
     public function isOffline(): bool
     {
         return $this->offlineMode;
     }
 
+    /**
+     * Check is is online
+     *
+     * @return boolean
+     */
     public function isOnline(): bool
     {
-        return ! $this->offlineMode;
+        return !$this->offlineMode;
     }
 
+    /**
+     * Set the redirect uri
+     *
+     * @param string $redirectUri
+     * @return self
+     */
     public function setRedirectUri(string $redirectUri): self
     {
         $this->redirectUri = $redirectUri;
@@ -131,6 +178,12 @@ class OAuthClient
         return $this;
     }
 
+    /**
+     * Set the cache pool to use
+     *
+     * @param Cache\CacheItemPoolInterface $cacheItemPool
+     * @return self
+     */
     public function useCache(Cache\CacheItemPoolInterface $cacheItemPool): self
     {
         $this->cache = $cacheItemPool;
@@ -138,12 +191,11 @@ class OAuthClient
         return $this;
     }
 
-    public function getHttpClient(): Client
-    {
-        return $this->client;
-    }
-
     /**
+     * Get Access Token
+     *
+     * @return string
+     *
      * @throws ApiError
      * @throws CannotGenerateAccessToken
      * @throws CannotGenerateRefreshToken
@@ -152,18 +204,20 @@ class OAuthClient
      */
     public function getAccessToken(): string
     {
-        if ($this->accessTokenExpired() && $this->refreshToken && $this->offlineMode) {
+
+        if ($this->accessTokenExpired() && $this->hasRefreshToken() && $this->isOffline()) {
             return $this->refreshAccessToken();
         }
 
-        if ($this->accessToken) {
+        if ($this->hasAccessToken()) {
             return $this->accessToken;
         }
 
-        if (! $this->cache) {
+        //Theres no cache engine
+        if (!$this->cache) {
             $this->generateTokens();
 
-            if (! $this->accessToken) {
+            if (!$this->accessToken) {
                 throw new CannotGenerateAccessToken();
             }
 
@@ -174,13 +228,24 @@ class OAuthClient
             $cachedAccessToken = $this->cache->getItem('zoho_crm_access_token');
 
             $value = $cachedAccessToken->get();
-            if ($value) {
+            if (is_string($value)) {
+                //This is the old way to get the token
+                $this->accessToken = new AccessToken(
+                    [
+                        'access_token' => $value,
+                        'expires_in' => $cachedAccessToken->getExpirationTimestamp() - time()
+                    ]
+                );
                 return $value;
+            } elseif ($value instanceof ZohoAccessToken) {
+                $this->accessToken = $value;
+                return $value->getToken();
             }
 
+            //Nothing valid in the cache so lets get a new token
             $this->generateTokens();
 
-            if (! $this->accessToken) {
+            if (!$this->hasAccessToken()) {
                 throw new CannotGenerateAccessToken();
             }
 
@@ -188,18 +253,23 @@ class OAuthClient
         } catch (InvalidArgumentException $e) {
             $this->generateTokens();
 
-            if (! $this->accessToken) {
+            if (!$this->hasAccessToken()) {
                 throw new CannotGenerateAccessToken();
             }
 
-            return $this->accessToken;
+            return $this->accessToken->getToken();
         }
     }
 
-    public function setAccessToken(string $token, int $expiresInSeconds = 3600): self
+    /**
+     * Set the Access Token while also updating the cache
+     *
+     * @param ZohoAccessToken $token
+     * @return self
+     */
+    public function setAccessToken(ZohoAccessToken $token): self
     {
         $this->accessToken = $token;
-        $this->accessTokenExpiration = (new \DateTime())->add(new \DateInterval('PT' . $expiresInSeconds . 'S'));
 
         if ($this->cache === null) {
             return $this;
@@ -207,9 +277,8 @@ class OAuthClient
 
         try {
             $cachedToken = $this->cache->getItem('zoho_crm_access_token');
-
-            $cachedToken->set($token);
-            $cachedToken->expiresAfter($expiresInSeconds);
+            $cachedToken->set($this->accessToken);
+            $cachedToken->expiresAt($this->accessToken->getExpires());
             $this->cache->save($cachedToken);
         } catch (InvalidArgumentException $e) {
         }
@@ -217,18 +286,18 @@ class OAuthClient
         return $this;
     }
 
+    /**
+     * Check if the access token has expired
+     *
+     * @return boolean
+     */
     public function accessTokenExpired(): bool
     {
-        if (! $this->accessTokenExpiration) {
+        if (empty($this->accessToken)) {
             return false;
         }
 
-        return ($this->accessTokenExpiration < (new \DateTime()));
-    }
-
-    public function accessTokenExpiration(): ?DateTime
-    {
-        return $this->accessTokenExpiration;
+        return $this->accessToken->hasExpired();
     }
 
     /**
@@ -241,7 +310,7 @@ class OAuthClient
      */
     public function refreshAccessToken(): string
     {
-        if (! $this->hasRefreshToken()) {
+        if (!$this->hasRefreshToken()) {
             try {
                 if ($this->generateTokens()->hasAccessToken()) {
                     return $this->accessToken;
@@ -251,38 +320,46 @@ class OAuthClient
             }
         }
 
-        $response = $this->client->post($this->getOAuthApiUrl(), [
-            'query' => [
-                'refresh_token' => $this->getRefreshToken(),
-                'client_id' => $this->clientId,
-                'client_secret' => $this->clientSecret,
-                'grant_type' => 'refresh_token',
-            ],
-        ]);
-
-        $data = json_decode($response->getBody());
-
-        if (! isset($data->access_token)) {
-            if (isset($data->error) && $data->error === 'access_denied') {
+        try {
+            $token = (new ZohoProvider([
+                'clientId' => $this->clientId,
+                'clientSecret' => $this->clientSecret,
+            ]))->getAccessToken(
+                'refresh_token',
+                [
+                    'refresh_token' => $this->getRefreshToken()
+                ]
+            );
+            $this->setAccessToken($token);
+            return $this->accessToken->getToken();
+        } catch (IdentityProviderException $e) {
+            $message = $e->getMessage();
+            if ($message === 'access_denied') {
                 throw new AccessDeniedException();
             }
 
-            throw new ApiError($data->error ?? 'Generic Error');
+            throw new ApiError($message ?? 'Generic Error');
         }
-
-        $this->setAccessToken($data->access_token, $data->expires_in_sec ?? ($data->expires_in ?? 3600));
-
-        return $data->access_token;
     }
 
+    /**
+     * Do we have a refresh token?
+     *
+     * @return boolean
+     */
     public function hasRefreshToken(): bool
     {
         return strlen($this->refreshToken) > 0;
     }
 
+    /**
+     * Do we have an access token?
+     *
+     * @return boolean
+     */
     public function hasAccessToken(): bool
     {
-        return strlen($this->accessToken) > 0;
+        return !empty($this->accessToken) && $this->accessToken instanceof ZohoAccessToken;
     }
 
     /**
@@ -293,7 +370,7 @@ class OAuthClient
      */
     public function generateTokens(): self
     {
-        if ($this->hasRefreshToken() && $this->offlineMode === true) {
+        if ($this->hasRefreshToken() && $this->isOffline()) {
             try {
                 $this->refreshAccessToken();
 
@@ -303,68 +380,59 @@ class OAuthClient
             }
         }
 
-        if (! $this->grantCode) {
+        //If you got here and you are questioning why you need to probably set ->offlineMode() on your oauth instance
+        if (!$this->grantCode) {
             throw new GrantCodeNotSetException();
         }
 
+
         try {
-            $response = $this->client->post($this->getOAuthApiUrl(), [
-                'query' => [
-                    'code' => $this->grantCode,
-                    'client_id' => $this->clientId,
-                    'client_secret' => $this->clientSecret,
-                    'state' => $this->state,
-                    'grant_type' => 'authorization_code',
-                    'scope' => implode(",", $this->scopes),
-                    'redirect_uri' => $this->redirectUri,
-                ],
-            ]);
-        } catch (ClientException $e) {
-            $body = $e->getResponse()->getBody()->getContents();
 
-            throw new ApiError($body, $e->getCode());
-        }
+            $token = (new ZohoProvider([
+                'clientId' => $this->clientId,
+                'clientSecret' => $this->clientSecret,
+                'state' => $this->state,
+                'redirectUri' => $this->redirectUri,
+            ]))->getAccessToken(
+                'authorization_code',
+                [
+                    'code' => $this->grantCode
+                ]
+            );
 
-        $data = json_decode($response->getBody());
+            $this->setRefreshToken($token->getRefreshToken());
+            $this->setAccessToken($token);
+            return $this->accessToken->getToken();
+        } catch (IdentityProviderException $e) {
+            $message = $e->getMessage();
+            if ($message === 'access_denied') {
+                throw new AccessDeniedException();
+            }
 
-        if (isset($data->error)) {
-            throw new InvalidGrantCodeException();
-        }
-
-        $this->setAccessToken($data->access_token ?? '', $data->expires_in_sec ?? $data->expires_in ?? 3600);
-
-        if (isset($data->refresh_token)) {
-            $this->setRefreshToken($data->refresh_token);
+            throw new InvalidGrantCodeException($message ?? 'Generic Error');
         }
 
         return $this;
     }
 
-    public function getOAuthApiUrl(): string
-    {
-        return $this->getBaseUrl() . '/token';
-    }
-
-    public function getBaseUrl(): string
-    {
-        return self::ZOHO_CLIENT_API_URL . $this->region->getValue() . self::ZOHO_CLIENT_API_PATH;
-    }
-
     /**
+     * Get Refresh Token
+     *
+     * @return string
      * @throws ApiError
      * @throws CannotGenerateRefreshToken
      * @throws GrantCodeNotSetException
      */
     public function getRefreshToken(): string
     {
-        if ($this->refreshToken) {
+        if ($this->hasRefreshToken()) {
             return $this->refreshToken;
         }
 
         if ($this->cache === null) {
             $this->generateTokens();
 
-            if (! $this->refreshToken) {
+            if (!$this->hasRefreshToken()) {
                 throw new ApiError('Cannot generate a refresh Token');
             }
         }
@@ -373,13 +441,13 @@ class OAuthClient
             $cachedRefreshToken = $this->cache->getItem('zoho_crm_refresh_token');
 
             $value = $cachedRefreshToken->get();
-            if ($value) {
+            if (!empty($value)) {
                 return $value;
             }
 
             $this->generateTokens();
 
-            if (! $this->refreshToken) {
+            if (!$this->refreshToken) {
                 throw new CannotGenerateRefreshToken();
             }
 
@@ -389,11 +457,17 @@ class OAuthClient
         }
     }
 
+    /**
+     * Set the refresh token
+     *
+     * @param string $token
+     * @return self
+     */
     public function setRefreshToken(string $token): self
     {
         $this->refreshToken = $token;
 
-        if (! $this->cache) {
+        if (!$this->cache) {
             return $this;
         }
 
@@ -409,6 +483,7 @@ class OAuthClient
     }
 
     /**
+     * Get All Available regions
      * @return Region[]
      */
     public function availableRegions(): array
@@ -416,6 +491,12 @@ class OAuthClient
         return Region::getAll();
     }
 
+    /**
+     * Revoke Refresh token
+     *
+     * @param string|null $refreshToken
+     * @return self
+     */
     public function revokeRefreshToken(?string $refreshToken = null): self
     {
         if ($refreshToken === null) {
@@ -423,12 +504,7 @@ class OAuthClient
         }
 
         try {
-            $this->client->post($this->getOAuthApiUrl() . '/revoke', [
-                'query' => [
-                    'token' => $refreshToken,
-                ],
-            ]);
-
+            (new ZohoProvider())->revoke($refreshToken);
             $this->setRefreshToken('');
         } catch (ClientException $e) {
             $body = $e->getResponse()->getBody()->getContents();
@@ -439,15 +515,16 @@ class OAuthClient
         return $this;
     }
 
+    /**
+     * Get Grant Code Consent Url
+     *
+     * @return string
+     */
     public function getGrantCodeConsentUrl(): string
     {
-        $query = [
-            'access_type' => $this->offlineMode ? 'offline' : 'online',
-            'client_id' => $this->clientId,
-            'state' => $this->state,
-            'redirect_uri' => $this->redirectUri,
-            'response_type' => 'code',
+        $urlOptions = [
             'scope' => implode(',', $this->scopes),
+            'access_type' => $this->offlineMode ? 'offline' : 'online'
         ];
 
         // In case we don't have a refresh token, and we need to get one (offline mode),
@@ -455,22 +532,45 @@ class OAuthClient
         // another one unless we force a new consent.
         // Beware that the max number of refresh tokens is 20, and creating a 21st will delete the first one making
         // it unusable, so STORE the refresh token the first time!
-        if ($this->offlineMode() && ! $this->refreshToken) {
-            $query['prompt'] = 'consent';
+        if ($this->isOffline() && !$this->hasRefreshToken()) {
+            $urlOptions['prompt'] = 'consent';
         }
 
-        return $this->getOAuthGrantUrl() . '?' . http_build_query($query);
+        return (new ZohoProvider([
+            'clientId' => $this->clientId,
+            'clientSecret' => $this->clientSecret,
+            'state' => $this->state,
+        ]))
+            ->getAuthorizationUrl($urlOptions);
     }
 
-    public function offlineMode(): self
+    /**
+     * Toggle offline mode
+     *
+     * @param boolean $enabled
+     * @return self
+     */
+    public function offlineMode(bool $enabled = true): self
     {
-        $this->offlineMode = true;
+        $this->offlineMode = $enabled;
 
         return $this;
     }
 
-    public function getOAuthGrantUrl(): string
+    /**
+     * Get the Resource owner
+     *
+     * @return ZohoUser
+     */
+    public function getResourceOwner(): ZohoUser
     {
-        return $this->getBaseUrl() . '/auth';
+        $this->getAccessToken();
+        if (!$this->hasAccessToken()) {
+            throw new RefreshTokenNotSet();
+        }
+        return (new ZohoProvider([
+            'clientId' => $this->clientId,
+            'clientSecret' => $this->clientSecret,
+        ]))->getResourceOwner($this->accessToken);
     }
 }
