@@ -19,7 +19,8 @@
     "ext-json": "*",
     "guzzlehttp/guzzle": "^6.0 | ^7.0",
     "psr/cache": "^1.0",
-    "spatie/enum": "^2.3"
+    "spatie/enum": "^2.3",
+    "league/oauth2-client": "^2.6"
     
   },
   "require-dev": {
