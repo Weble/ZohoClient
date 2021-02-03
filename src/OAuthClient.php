@@ -330,6 +330,10 @@ class OAuthClient
             return false;
         }
 
+        if (!$this->token->getExpires()) {
+            return true;
+        }
+
         return $this->token->hasExpired();
     }
 
