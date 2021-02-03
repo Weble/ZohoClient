@@ -59,7 +59,7 @@ class OAuthClient
     {
         $scopes = array_unique(array_merge($this->scopes, $additionalScopes));
         $url = $this->provider->getAuthorizationUrl([
-            'scope' => $scopes,
+            'scope'       => $scopes,
             'access_type' => $this->offlineMode ? 'offline' : 'online',
         ]);
 
@@ -172,7 +172,7 @@ class OAuthClient
      */
     public function isOnline(): bool
     {
-        return ! $this->offlineMode;
+        return !$this->offlineMode;
     }
 
     /**
@@ -230,7 +230,7 @@ class OAuthClient
      */
     public function getAccessToken(): string
     {
-        if (! $this->accessTokenExpired() && $this->hasAccessToken()) {
+        if (!$this->accessTokenExpired() && $this->hasAccessToken()) {
             return $this->token->getToken();
         }
 
@@ -255,7 +255,7 @@ class OAuthClient
         }
 
         // Maybe it's a first time request, so it's actually a grant token request?
-        if (! $this->hasAccessToken() && $this->hasGrantCode()) {
+        if (!$this->hasAccessToken() && $this->hasGrantCode()) {
             $this->generateTokensFromGrantToken();
 
             return $this->token->getToken();
@@ -290,7 +290,7 @@ class OAuthClient
      */
     public function setAccessToken(string $token, ?int $expiresIn = null): self
     {
-        if (! $this->token) {
+        if (!$this->token) {
             $this->token = new AccessToken([
                 'access_token' => $token,
             ]);
@@ -326,7 +326,7 @@ class OAuthClient
      */
     public function accessTokenExpired(): bool
     {
-        if (! $this->token) {
+        if (!$this->token) {
             return false;
         }
 
@@ -346,7 +346,7 @@ class OAuthClient
      */
     public function refreshAccessToken(): string
     {
-        if (! $this->hasRefreshToken()) {
+        if (!$this->hasRefreshToken()) {
             throw new RefreshTokenNotSet();
         }
 
@@ -374,7 +374,7 @@ class OAuthClient
      */
     public function hasRefreshToken(): bool
     {
-        if (! $this->token) {
+        if (!$this->token) {
             return false;
         }
 
@@ -388,7 +388,7 @@ class OAuthClient
      */
     public function hasAccessToken(): bool
     {
-        if (! $this->token) {
+        if (!$this->token) {
             return false;
         }
 
@@ -428,32 +428,13 @@ class OAuthClient
             return $this->token->getRefreshToken();
         }
 
-        try {
-            if ($this->hasCache()) {
-                try {
-                    $cachedRefreshToken = $this->cache->getItem($this->cachePrefix . 'refresh_token');
+        // Maybe it's a first time request, so it's actually a grant token request?
+        if (!$this->hasRefreshToken() && $this->hasGrantCode()) {
+            $this->generateTokensFromGrantToken();
+            $token = $this->token->getRefreshToken();
 
-                    $value = $cachedRefreshToken->get();
-                    if (empty($value)) {
-                        throw new RefreshTokenNotSet();
-                    }
-
-                    $this->setRefreshToken($value);
-
-                    return $this->token->getRefreshToken();
-                } catch (InvalidArgumentException $e) {
-                    throw new RefreshTokenNotSet();
-                }
-            }
-        } catch (RefreshTokenNotSet $e) {
-            // Maybe it's a first time request, so it's actually a grant token request?
-            if (! $this->hasRefreshToken() && $this->hasGrantCode()) {
-                $this->generateTokensFromGrantToken();
-                $token = $this->token->getRefreshToken();
-
-                if ($token) {
-                    return $token;
-                }
+            if ($token) {
+                return $token;
             }
         }
 
@@ -468,18 +449,25 @@ class OAuthClient
      */
     public function setRefreshToken(string $token): self
     {
-        if (! $this->token) {
+        $emptyToken = false;
+        if (!$this->token) {
             $this->token = new AccessToken([
-                'access_token' => uniqid(),
+                'access_token'  => 'TEMP',
+                'refresh_token' => $token,
+                'expires_in'    => 0,
             ]);
+            $emptyToken = true;
         }
 
         $values = $this->token->jsonSerialize();
         $values['refresh_token'] = $token;
 
         $this->token = new AccessToken($values);
+        if ($emptyToken) {
+            $this->refreshAccessToken();
+        }
 
-        if (! $this->hasCache()) {
+        if (!$this->hasCache()) {
             return $this;
         }
 
@@ -545,7 +533,7 @@ class OAuthClient
      */
     public function getResourceOwner(): ResourceOwnerInterface
     {
-        if (! $this->hasAccessToken()) {
+        if (!$this->hasAccessToken()) {
             throw new AccessTokenNotSet();
         }
 
@@ -555,10 +543,10 @@ class OAuthClient
     protected function createProvider(): void
     {
         $this->provider = new Zoho([
-            'clientId' => $this->clientId,
+            'clientId'     => $this->clientId,
             'clientSecret' => $this->clientSecret,
-            'redirectUri' => $this->redirectUri,
-            'dc' => $this->region,
+            'redirectUri'  => $this->redirectUri,
+            'dc'           => $this->region,
         ]);
     }
 }
