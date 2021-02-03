@@ -61,7 +61,6 @@ class ApiTest extends TestCase
             $auth = json_decode($envConfig);
         }
 
-
         $region = Region::US;
         if ($auth->region) {
             $region = $auth->region;
@@ -79,8 +78,6 @@ class ApiTest extends TestCase
     {
         $url = self::$client->getAuthorizationUrl();
         $this->assertIsString($url);
-
-        echo $url;
     }
 
     /**
@@ -89,22 +86,6 @@ class ApiTest extends TestCase
     public function canRefreshAccessToken()
     {
         $accessToken = self::$client->refreshAccessToken();
-        $this->assertTrue(strlen($accessToken) > 0);
-    }
-
-    /**
-     * @test
-     */
-    public function canCacheAccessToken()
-    {
-        $accessToken = self::$client->refreshAccessToken();
-        $this->assertTrue(strlen($accessToken) > 0);
-
-        $auth = self::loadAuth();
-
-        // Recreate the client so it's not locally stored
-        self::createClient($auth);
-
         $this->assertTrue(strlen($accessToken) > 0);
     }
 }
