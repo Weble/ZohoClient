@@ -198,6 +198,8 @@ class OAuthClient
      */
     public function useCache(Cache\CacheItemPoolInterface $cacheItemPool, string $cachePrefix = 'zoho_crm_'): self
     {
+        $this->setCachePrefix($cachePrefix);
+
         $this->cache = $cacheItemPool;
 
         return $this;
