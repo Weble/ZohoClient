@@ -57,7 +57,7 @@ class ApiTest extends TestCase
         $auth = json_decode(file_get_contents($authFile));
 
         foreach ($auth as $key => $value) {
-            $envValue = $_ENV[strtoupper('ZOHO_' . $key)] ?? null;
+            $envValue = $_SERVER[strtoupper('ZOHO_' . $key)] ?? null;
             if ($envValue) {
                 $auth->$key = $envValue;
             }
