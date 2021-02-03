@@ -6,6 +6,7 @@ use Cache\Adapter\Filesystem\FilesystemCachePool;
 use League\Flysystem\Adapter\Local;
 use League\Flysystem\Filesystem;
 use PHPUnit\Framework\TestCase;
+use stdClass;
 use Weble\ZohoClient\Enums\Region;
 use Weble\ZohoClient\OAuthClient;
 
@@ -21,6 +22,33 @@ class ApiTest extends TestCase
      */
     public static function setUpBeforeClass(): void
     {
+        $auth = self::loadAuth();
+
+        $client = self::createClient($auth);
+
+        self::$client = $client;
+    }
+
+    protected static function createClient($auth): OAuthClient
+    {
+        $filesystemAdapter = new Local(__DIR__ . '/temp');
+        $filesystem = new Filesystem($filesystemAdapter);
+        $pool = new FilesystemCachePool($filesystem);
+
+        $client = new OAuthClient($auth->client_id, $auth->client_secret);
+        $client->setAccessToken($auth->access_token ?? uniqid());
+        $client->setRefreshToken($auth->refresh_token);
+        $client->setGrantCode($auth->grant_code);
+        $client->setRegion($auth->region);
+        $client->offlineMode();
+        $client->useCache($pool);
+        $client->setRedirectUri($auth->redirect_uri);
+
+        return $client;
+    }
+
+    protected static function loadAuth(): stdClass
+    {
         $authFile = __DIR__ . '/config.example.json';
         if (file_exists(__DIR__ . '/config.json')) {
             $authFile = __DIR__ . '/config.json';
@@ -35,40 +63,49 @@ class ApiTest extends TestCase
             }
         }
 
-        $region = Region::us();
+        $region = Region::US;
         if ($auth->region) {
-            $region = Region::make($auth->region);
+            $region = $auth->region;
         }
 
-        $filesystemAdapter = new Local(__DIR__ . '/temp');
-        $filesystem = new Filesystem($filesystemAdapter);
-        $pool = new FilesystemCachePool($filesystem);
+        $auth->region = $region;
 
-        $client = new OAuthClient($auth->client_id, $auth->client_secret);
-        $client->setRefreshToken($auth->refresh_token);
-        $client->setGrantCode($auth->grant_code);
-        $client->setRegion($region);
-        $client->offlineMode();
-        $client->useCache($pool);
-
-        self::$client = $client;
+        return $auth;
     }
 
     /**
      * @test
      */
-    public function hasAccessToken()
+    public function canGenerateAuthUrl()
     {
-        $accessToken = self::$client->getAccessToken();
+        $url = self::$client->getAuthorizationUrl();
+        $this->assertIsString($url);
+
+        echo $url;
+    }
+
+    /**
+     * @test
+     */
+    public function canRefreshAccessToken()
+    {
+        $accessToken = self::$client->refreshAccessToken();
         $this->assertTrue(strlen($accessToken) > 0);
     }
 
     /**
      * @test
      */
-    public function canGenerateAccessToken()
+    public function canCacheAccessToken()
     {
         $accessToken = self::$client->refreshAccessToken();
+        $this->assertTrue(strlen($accessToken) > 0);
+
+        $auth = self::loadAuth();
+
+        // Recreate the client so it's not locally stored
+        self::createClient($auth);
+
         $this->assertTrue(strlen($accessToken) > 0);
     }
 }
