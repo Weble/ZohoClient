@@ -59,8 +59,8 @@ class OAuthClient
     {
         $scopes = array_unique(array_merge($this->scopes, $additionalScopes));
         $url = $this->provider->getAuthorizationUrl([
-            'scope'       => $scopes,
-            'access_type' => $this->offlineMode ? 'offline' : 'online'
+            'scope' => $scopes,
+            'access_type' => $this->offlineMode ? 'offline' : 'online',
         ]);
 
         $this->state = $this->provider->getState();
@@ -158,7 +158,7 @@ class OAuthClient
     /**
      * Check if is offline
      *
-     * @return boolean
+     * @return bool
      */
     public function isOffline(): bool
     {
@@ -168,11 +168,11 @@ class OAuthClient
     /**
      * Check is is online
      *
-     * @return boolean
+     * @return bool
      */
     public function isOnline(): bool
     {
-        return !$this->offlineMode;
+        return ! $this->offlineMode;
     }
 
     /**
@@ -228,7 +228,7 @@ class OAuthClient
      */
     public function getAccessToken(): string
     {
-        if (!$this->accessTokenExpired() && $this->hasAccessToken()) {
+        if (! $this->accessTokenExpired() && $this->hasAccessToken()) {
             return $this->token->getToken();
         }
 
@@ -243,9 +243,7 @@ class OAuthClient
                 }
 
                 return $this->token->getToken();
-
             } catch (InvalidArgumentException $e) {
-
             }
         }
 
@@ -255,8 +253,9 @@ class OAuthClient
         }
 
         // Maybe it's a first time request, so it's actually a grant token request?
-        if (!$this->hasAccessToken() && $this->hasGrantCode()) {
+        if (! $this->hasAccessToken() && $this->hasGrantCode()) {
             $this->generateTokensFromGrantToken();
+
             return $this->token->getToken();
         }
 
@@ -274,7 +273,7 @@ class OAuthClient
     {
         if ($this->hasGrantCode()) {
             $this->token = $this->provider->getAccessToken('authorization_code', [
-                'code' => $this->grantCode
+                'code' => $this->grantCode,
             ]);
         }
 
@@ -289,9 +288,9 @@ class OAuthClient
      */
     public function setAccessToken(string $token, ?int $expiresIn = null): self
     {
-        if (!$this->token) {
+        if (! $this->token) {
             $this->token = new AccessToken([
-                'access_token' => $token
+                'access_token' => $token,
             ]);
         }
 
@@ -321,11 +320,11 @@ class OAuthClient
     /**
      * Check if the access token has expired
      *
-     * @return boolean
+     * @return bool
      */
     public function accessTokenExpired(): bool
     {
-        if (!$this->token) {
+        if (! $this->token) {
             return false;
         }
 
@@ -341,14 +340,14 @@ class OAuthClient
      */
     public function refreshAccessToken(): string
     {
-        if (!$this->hasRefreshToken()) {
+        if (! $this->hasRefreshToken()) {
             throw new RefreshTokenNotSet();
         }
 
         try {
             $grant = new RefreshToken();
             $this->token = $this->provider->getAccessToken($grant, [
-                'refresh_token' => $this->getRefreshToken()
+                'refresh_token' => $this->getRefreshToken(),
             ]);
         } catch (IdentityProviderException $e) {
             $message = $e->getMessage();
@@ -365,11 +364,11 @@ class OAuthClient
     /**
      * Do we have a refresh token?
      *
-     * @return boolean
+     * @return bool
      */
     public function hasRefreshToken(): bool
     {
-        if (!$this->token) {
+        if (! $this->token) {
             return false;
         }
 
@@ -379,11 +378,11 @@ class OAuthClient
     /**
      * Do we have an access token?
      *
-     * @return boolean
+     * @return bool
      */
     public function hasAccessToken(): bool
     {
-        if (!$this->token) {
+        if (! $this->token) {
             return false;
         }
 
@@ -393,7 +392,7 @@ class OAuthClient
     /**
      * Do we have a grant code?
      *
-     * @return boolean
+     * @return bool
      */
     public function hasGrantCode(): bool
     {
@@ -434,15 +433,15 @@ class OAuthClient
                     }
 
                     $this->setRefreshToken($value);
-                    return $this->token->getRefreshToken();
 
+                    return $this->token->getRefreshToken();
                 } catch (InvalidArgumentException $e) {
                     throw new RefreshTokenNotSet();
                 }
             }
-        } catch( RefreshTokenNotSet $e) {
+        } catch (RefreshTokenNotSet $e) {
             // Maybe it's a first time request, so it's actually a grant token request?
-            if (!$this->hasRefreshToken() && $this->hasGrantCode()) {
+            if (! $this->hasRefreshToken() && $this->hasGrantCode()) {
                 $this->generateTokensFromGrantToken();
                 $token = $this->token->getRefreshToken();
 
@@ -463,9 +462,9 @@ class OAuthClient
      */
     public function setRefreshToken(string $token): self
     {
-        if (!$this->token) {
+        if (! $this->token) {
             $this->token = new AccessToken([
-                'access_token' => uniqid()
+                'access_token' => uniqid(),
             ]);
         }
 
@@ -474,7 +473,7 @@ class OAuthClient
 
         $this->token = new AccessToken($values);
 
-        if (!$this->hasCache()) {
+        if (! $this->hasCache()) {
             return $this;
         }
 
@@ -484,7 +483,6 @@ class OAuthClient
             $cachedToken->set($token);
             $this->cache->save($cachedToken);
         } catch (InvalidArgumentException $e) {
-
         }
 
         return $this;
@@ -513,6 +511,7 @@ class OAuthClient
             );
 
             $this->setRefreshToken('');
+
             return $this;
         } catch (\Exception $e) {
             throw new CannotRevokeRefreshToken($e->getMessage(), $e->getCode(), $e);
@@ -522,7 +521,7 @@ class OAuthClient
     /**
      * Toggle offline mode
      *
-     * @param boolean $enabled
+     * @param bool $enabled
      * @return self
      */
     public function offlineMode(bool $enabled = true): self
@@ -540,7 +539,7 @@ class OAuthClient
      */
     public function getResourceOwner(): ResourceOwnerInterface
     {
-        if (!$this->hasAccessToken()) {
+        if (! $this->hasAccessToken()) {
             throw new AccessTokenNotSet();
         }
 
@@ -550,10 +549,10 @@ class OAuthClient
     protected function createProvider(): void
     {
         $this->provider = new Zoho([
-            'clientId'     => $this->clientId,
+            'clientId' => $this->clientId,
             'clientSecret' => $this->clientSecret,
-            'redirectUri'  => $this->redirectUri,
-            'dc'           => $this->region
+            'redirectUri' => $this->redirectUri,
+            'dc' => $this->region,
         ]);
     }
 }
