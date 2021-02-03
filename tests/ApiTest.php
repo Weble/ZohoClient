@@ -59,9 +59,8 @@ class ApiTest extends TestCase
         $envConfig = $_SERVER['OAUTH_CONFIG'] ?? $_ENV['OAUTH_CONFIG'] ?? null;
         if ($envConfig) {
             $auth = json_decode($envConfig);
-            var_dump($auth);
         }
-        
+
 
         $region = Region::US;
         if ($auth->region) {
