@@ -7,3 +7,4 @@ tests/config.json
 tests/temp
 .php_cs.cache
 .phpunit.result.cache
+cov.xml
