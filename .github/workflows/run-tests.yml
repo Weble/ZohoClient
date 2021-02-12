@@ -1,6 +1,13 @@
 name: run-tests
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - master
+      - v4
+  pull_request:
+    branches:
+      - master
 
 jobs:
   test:
@@ -8,9 +15,9 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [ubuntu-latest]
-        php: [7.4, 7.3, 7.2]
-        dependency-version: [prefer-lowest, prefer-stable]
+        os: [ ubuntu-latest, windows-latest ]
+        php: [ 8.0, 7.4, 7.3 ]
+        dependency-version: [ prefer-stable ]
 
     name: P${{ matrix.php }} - ${{ matrix.dependency-version }} - ${{ matrix.os }}
 
@@ -25,7 +32,7 @@ jobs:
           key: dependencies-php-${{ matrix.php }}-composer-${{ hashFiles('composer.json') }}
 
       - name: Setup PHP
-        uses: shivammathur/setup-php@v1
+        uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
           extensions: dom, curl, libxml, mbstring, zip, bcmath, soap, intl
@@ -38,8 +45,4 @@ jobs:
       - name: Execute tests
         run: vendor/bin/phpunit
         env:
-          ZOHO_CLIENT_ID: ${{ secrets.ZOHO_CLIENT_ID }}
-          ZOHO_CLIENT_SECRET: ${{ secrets.ZOHO_CLIENT_SECRET }}
-          ZOHO_REFRESH_TOKEN: ${{ secrets.ZOHO_REFRESH_TOKEN }}
-          ZOHO_GRANT_CODE: ${{ secrets.ZOHO_GRANT_CODE }}
-          ZOHO_REGION: ${{ secrets.ZOHO_REGION }}
+          OAUTH_CONFIG: ${{ secrets.OAUTH_CONFIG }}

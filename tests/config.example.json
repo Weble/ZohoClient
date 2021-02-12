@@ -3,7 +3,6 @@
   "client_secret": "",
   "grant_code": "",
   "refresh_token" : "",
-  "access_token": "",
-  "auth_token": "",
-  "region": "us"
+  "region": "us",
+  "redirect_uri": "https://zohoclient.weble.it"
 }

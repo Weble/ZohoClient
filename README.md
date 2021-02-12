@@ -16,22 +16,40 @@ any zoho api you need.
 composer require weble/zohoclient 
 ```
 
-## Example Usage (Offline Mode)
+## Example Usages (Offline Mode)
+
+### Retrieve the url to authenticate against ZOHO and retrieve the access Token / Refresh Token for the first time
 ```php
 require_once './vendor/autoload.php';
 
-$client = new \Weble\ZohoClient\OAuthClient('{CLIENT_ID}', '{CLIENT_SECRET}');
-$client->setRefreshToken('{REFRESH_TOKEN}');
-$client->setRegion(\Weble\ZohoClient\Enums\Region::us());
-$client->offlineMode();
-$client->useCache($yourPSR6CachePool);
+$client = new \Weble\ZohoClient\OAuthClient('{CLIENT_ID}', '{CLIENT_SECRET}', '{REGION}', '{REDIRECTURL}');
+$client->offlineMode(); // this needs to be set if you want to be able to refresh the token
 
-// Done!
-$accessToken = $client->getAccessToken();
+// Get the url
+$client->setScopes([]); // Set the zoho scopes you need, see https://www.zoho.com/crm/developer/docs/api/v2/scopes.html
+$url = $client->getAuthorizationUrl();
+$state = $client->getState(); // Get the state for security, and save it (usually in session)
 
-// Check if it's expired
-$isExpired = $client->accessTokenExpired();
+redirect($url); // Do your redirection as you prefer
 
+// Wait for the user to redirect...
+
+// In the redirection page, check for the state you got before and that you should've stored
+if ($state !== $_GET['state']) {
+    throw new \Exception('Someone is tampering with the oauth2 request');
+}
+
+// Try to get an access token (using the authorization code grant)
+try {
+    $client->setGrantCode($_GET['code']);
+    
+    // get the access token (and store it probably)
+    $token = $client->getAccessToken();
+    // if you set the offline mode, you can also get the refresh token here (and store it)
+    $refreshToken = $client->getRefreshToken();
+} catch (\Exception $e) {
+    // handle your exceptions
+}
 ```
 
 ## Example Usage (Online Mode)
