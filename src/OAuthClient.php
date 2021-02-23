@@ -237,9 +237,12 @@ class OAuthClient
             try {
                 $cachedAccessToken = $this->cache->getItem($this->cachePrefix . 'access_token');
 
-                if ($cachedAccessToken->isHit()) {
-                    $this->accessToken = $cachedAccessToken->get();
-                    return $this->accessToken->getToken();
+				if ($cachedAccessToken->isHit()) {
+                    /** @var \Asad\OAuth2\Client\AccessToken\ZohoAccessToken */
+                    $accessToken = $cachedAccessToken->get();
+                    if ($accessToken->hasExpired()) {
+                        return $this->accessToken->getToken();
+                    }
                 }
             } catch (InvalidArgumentException $e) {
             }
