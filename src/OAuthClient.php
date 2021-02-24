@@ -239,7 +239,8 @@ class OAuthClient
                 if ($cachedAccessToken->isHit()) {
                     /** @var \Asad\OAuth2\Client\AccessToken\ZohoAccessToken */
                     $accessToken = $cachedAccessToken->get();
-                    if ($accessToken->hasExpired()) {
+                    if (!$accessToken->hasExpired()) {
+                        $this->accessToken = $accessToken;
                         return $this->accessToken->getToken();
                     }
                 }
