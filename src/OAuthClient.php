@@ -2,8 +2,8 @@
 
 namespace Weble\ZohoClient;
 
-use Asad\OAuth2\Client\Provider\Zoho;
-use Asad\OAuth2\Client\AccessToken\ZohoAccessToken;
+use Weble\ZohoClient\Oauth\Zoho;
+use Weble\ZohoClient\Oauth\ZohoAccessToken;
 use League\OAuth2\Client\Grant\RefreshToken;
 use League\OAuth2\Client\Provider\AbstractProvider;
 use League\OAuth2\Client\Provider\Exception\IdentityProviderException;
@@ -217,7 +217,7 @@ class OAuthClient
     }
 
     /**
-     * Get Access Token
+     * Get Access Token as a string
      *
      * @return string
      *
@@ -228,8 +228,23 @@ class OAuthClient
      */
     public function getAccessToken(): string
     {
+        return $this->getAccessTokenObject()->getToken();
+    }
+
+    /**
+     * Get Access Token Object
+     *
+     * @return ZohoAccessToken
+     *
+     * @throws AccessDeniedException
+     * @throws AccessTokenNotSet
+     * @throws IdentityProviderException
+     * @throws RefreshTokenNotSet
+     */
+    public function getAccessTokenObject()
+    {
         if ($this->hasAccessToken() && !$this->accessTokenExpired()) {
-            return $this->accessToken->getToken();
+            return $this->accessToken;
         }
 
         // Let's try with cache!
@@ -239,7 +254,7 @@ class OAuthClient
 
                 if ($cachedAccessToken->isHit()) {
                     $this->accessToken = $cachedAccessToken->get();
-                    return $this->accessToken->getToken();
+                    return $this->accessToken;
                 }
             } catch (InvalidArgumentException $e) {
             }
@@ -247,14 +262,15 @@ class OAuthClient
 
         // Do we have the chance to refresh the access token
         if ((!$this->hasAccessToken() || $this->accessTokenExpired()) && $this->hasRefreshToken()) {
-            return $this->refreshAccessToken();
+            $this->refreshAccessToken();
+            return $this->accessToken;
         }
 
         // Maybe it's a first time request, so it's actually a grant token request?
         if (!$this->hasAccessToken() && $this->hasGrantCode()) {
             $this->generateTokensFromGrantToken();
 
-            return $this->accessToken->getToken();
+            return $this->accessToken;
         }
 
 

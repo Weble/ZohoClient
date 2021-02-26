@@ -33,6 +33,6 @@
   "minimum-stability": "dev",
   "prefer-stable": true,
   "scripts": {
-    "test": "phpunit --coverage-clover cov.xml --whitelist src/"
+    "test": "phpunit --coverage-text --coverage-clover cov.xml --whitelist src/"
  }
 }
