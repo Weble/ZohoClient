@@ -109,6 +109,11 @@ class ApiTest extends TestCase
         //Assert token is different
         $this->assertEquals($secondToken, $this->client->getAccessToken());
         $this->assertNotEquals($firstToken, $secondToken);
+
+        //Make sure the token expires in an hour like Zoho tells us
+        $hourFromNow = (new \DateTime())->add(new \DateInterval("PT1H"))->format('U');
+        $accessToken = $this->client->getAccessTokenObject();
+        $this->assertLessThanOrEqual($hourFromNow, $accessToken->getExpires());
     }
 
     /**
