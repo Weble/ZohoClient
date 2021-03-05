@@ -4,6 +4,7 @@ namespace Weble\ZohoClient\Oauth;
 
 use Asad\OAuth2\Client\Provider\Zoho as AsadZoho;
 use League\OAuth2\Client\Grant\AbstractGrant;
+use League\OAuth2\Client\Token\AccessTokenInterface;
 
 class Zoho extends AsadZoho
 {
