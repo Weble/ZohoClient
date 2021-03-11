@@ -321,7 +321,7 @@ class OAuthClient
             try {
                 $cachedToken = $this->cache->getItem($this->cachePrefix . 'access_token');
                 $cachedToken->set($this->accessToken);
-                $cachedToken->expiresAfter($this->accessToken->getExpires());
+                $cachedToken->expiresAt(new \DateTime('@' . $this->accessToken->getExpires()));
                 $this->cache->save($cachedToken);
             } catch (InvalidArgumentException $e) {
             }
@@ -381,7 +381,7 @@ class OAuthClient
             try {
                 $cachedToken = $this->cache->getItem($this->cachePrefix . 'access_token');
                 $cachedToken->set($this->accessToken);
-                $cachedToken->expiresAfter($this->accessToken->getExpires());
+                $cachedToken->expiresAt(new \DateTime('@' . $this->accessToken->getExpires()));
                 $this->cache->save($cachedToken);
             } catch (InvalidArgumentException $e) {
             }
