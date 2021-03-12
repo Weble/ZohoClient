@@ -2,8 +2,6 @@
 
 namespace Weble\ZohoClient;
 
-use Weble\ZohoClient\Oauth\Zoho;
-use Weble\ZohoClient\Oauth\ZohoAccessToken;
 use League\OAuth2\Client\Grant\RefreshToken;
 use League\OAuth2\Client\Provider\AbstractProvider;
 use League\OAuth2\Client\Provider\Exception\IdentityProviderException;
@@ -16,6 +14,8 @@ use Weble\ZohoClient\Exception\AccessDeniedException;
 use Weble\ZohoClient\Exception\AccessTokenNotSet;
 use Weble\ZohoClient\Exception\CannotRevokeRefreshToken;
 use Weble\ZohoClient\Exception\RefreshTokenNotSet;
+use Weble\ZohoClient\Oauth\Zoho;
+use Weble\ZohoClient\Oauth\ZohoAccessToken;
 
 class OAuthClient
 {
@@ -60,7 +60,7 @@ class OAuthClient
     {
         $scopes = array_unique(array_merge($this->scopes, $additionalScopes));
         $url = $this->provider->getAuthorizationUrl([
-            'scope'       => $scopes,
+            'scope' => $scopes,
             'access_type' => $this->offlineMode ? 'offline' : 'online',
         ]);
 
@@ -173,7 +173,7 @@ class OAuthClient
      */
     public function isOnline(): bool
     {
-        return !$this->offlineMode;
+        return ! $this->offlineMode;
     }
 
     /**
@@ -243,7 +243,7 @@ class OAuthClient
      */
     public function getAccessTokenObject()
     {
-        if ($this->hasAccessToken() && !$this->accessTokenExpired()) {
+        if ($this->hasAccessToken() && ! $this->accessTokenExpired()) {
             return $this->accessToken;
         }
 
@@ -254,6 +254,7 @@ class OAuthClient
 
                 if ($cachedAccessToken->isHit()) {
                     $this->accessToken = $cachedAccessToken->get();
+
                     return $this->accessToken;
                 }
             } catch (InvalidArgumentException $e) {
@@ -261,13 +262,14 @@ class OAuthClient
         }
 
         // Do we have the chance to refresh the access token
-        if ((!$this->hasAccessToken() || $this->accessTokenExpired()) && $this->hasRefreshToken()) {
+        if ((! $this->hasAccessToken() || $this->accessTokenExpired()) && $this->hasRefreshToken()) {
             $this->refreshAccessToken();
+
             return $this->accessToken;
         }
 
         // Maybe it's a first time request, so it's actually a grant token request?
-        if (!$this->hasAccessToken() && $this->hasGrantCode()) {
+        if (! $this->hasAccessToken() && $this->hasGrantCode()) {
             $this->generateTokensFromGrantToken();
 
             return $this->accessToken;
@@ -303,7 +305,7 @@ class OAuthClient
      */
     public function setAccessToken(string $token, ?int $expiresIn = null): self
     {
-        if (!$this->accessToken) {
+        if (! $this->accessToken) {
             $this->accessToken = new ZohoAccessToken([
                 'access_token' => $token,
             ]);
@@ -337,11 +339,11 @@ class OAuthClient
      */
     public function accessTokenExpired(): bool
     {
-        if (!$this->accessToken) {
+        if (! $this->accessToken) {
             return false;
         }
 
-        if (!$this->accessToken->getExpires()) {
+        if (! $this->accessToken->getExpires()) {
             return true;
         }
 
@@ -357,7 +359,7 @@ class OAuthClient
      */
     public function refreshAccessToken(): string
     {
-        if (!$this->hasRefreshToken()) {
+        if (! $this->hasRefreshToken()) {
             throw new RefreshTokenNotSet();
         }
 
@@ -407,7 +409,7 @@ class OAuthClient
      */
     public function hasAccessToken(): bool
     {
-        if (!$this->accessToken) {
+        if (! $this->accessToken) {
             return false;
         }
 
@@ -448,12 +450,13 @@ class OAuthClient
         }
 
         // Maybe it's a first time request, so it's actually a grant token request?
-        if (!$this->hasRefreshToken() && $this->hasGrantCode()) {
+        if (! $this->hasRefreshToken() && $this->hasGrantCode()) {
             $this->generateTokensFromGrantToken();
             $token = $this->accessToken->getRefreshToken();
 
             if ($token) {
                 $this->refreshToken = $token;
+
                 return $this->refreshToken;
             }
         }
@@ -470,6 +473,7 @@ class OAuthClient
     public function setRefreshToken(string $token): self
     {
         $this->refreshToken = $token;
+
         return $this;
     }
 
@@ -524,7 +528,7 @@ class OAuthClient
      */
     public function getResourceOwner(): ResourceOwnerInterface
     {
-        if (!$this->hasAccessToken() || $this->accessTokenExpired()) {
+        if (! $this->hasAccessToken() || $this->accessTokenExpired()) {
             $this->getAccessToken();
         }
 
@@ -534,10 +538,10 @@ class OAuthClient
     protected function createProvider(): void
     {
         $this->provider = new Zoho([
-            'clientId'     => $this->clientId,
+            'clientId' => $this->clientId,
             'clientSecret' => $this->clientSecret,
-            'redirectUri'  => $this->redirectUri,
-            'dc'           => $this->region,
+            'redirectUri' => $this->redirectUri,
+            'dc' => $this->region,
         ]);
     }
 }
