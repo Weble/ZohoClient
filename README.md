@@ -61,12 +61,8 @@ $client->setRegion(\Weble\ZohoClient\Enums\Region::us());
 $client->setRedirectUri('{REDIRECT_URI_OF_YOUR_APP}');
 $client->onlineMode();
 
-$authUrl = $client->getGrantCodeConsentUrl();
-
-// Redirect your user to the $authUrl
-
 // When you get redirected back to your REDIRECT_URI_OF_YOUR_APP
-$code = $_GET['code']; // or \Weble\ZohoClient\OAuthClient::parseGrantTokenFromUrl($url);
+$code = $_GET['code'];
 $client->setGrantCode($code);
 
 // Done!
