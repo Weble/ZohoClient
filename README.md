@@ -43,10 +43,12 @@ if ($state !== $_GET['state']) {
 try {
     $client->setGrantCode($_GET['code']);
     
-    // get the access token (and store it probably)
-    $token = $client->getAccessToken();
     // if you set the offline mode, you can also get the refresh token here (and store it)
     $refreshToken = $client->getRefreshToken();
+    
+    // get the access token (and store it probably)
+    $token = $client->getAccessToken();
+    
 } catch (\Exception $e) {
     // handle your exceptions
 }
