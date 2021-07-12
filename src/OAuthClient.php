@@ -29,6 +29,8 @@ class OAuthClient
     protected $scopes = ['AaaServer.profile.READ'];
     /** @var bool */
     protected $offlineMode = true;
+    /** @var bool */
+    protected $prompt = true;
     /** @var string */
     protected $state = 'test';
     /** @var string */
@@ -45,8 +47,6 @@ class OAuthClient
     protected $cachePrefix = 'zoho_crm_';
     /** @var string|null */
     protected $refreshToken;
-    /** @var bool */
-    protected $prompt = true;
 
     public function __construct(string $clientId, string $clientSecret, string $region = Region::US, string $redirectUri = '')
     {
@@ -61,10 +61,17 @@ class OAuthClient
     public function getAuthorizationUrl(array $additionalScopes = []): string
     {
         $scopes = array_unique(array_merge($this->scopes, $additionalScopes));
-        $url = $this->provider->getAuthorizationUrl([
+
+        $options = [
             'scope' => $scopes,
             'access_type' => $this->offlineMode ? 'offline' : 'online',
-        ]);
+        ];
+
+        if($this->prompt){
+            $options['prompt'] = 'consent';
+        }
+
+        $url = $this->provider->getAuthorizationUrl($options);
 
         $this->state = $this->provider->getState();
 
@@ -296,6 +303,8 @@ class OAuthClient
             ]);
         }
 
+        dump($this);
+
         return $this;
     }
 
@@ -456,6 +465,8 @@ class OAuthClient
             $this->generateTokensFromGrantToken();
             $token = $this->accessToken->getRefreshToken();
 
+            dump($token);
+
             if ($token) {
                 $this->refreshToken = $token;
 
@@ -521,7 +532,7 @@ class OAuthClient
 
         return $this;
     }
-    
+
     /**
      * During authorization prompt the user to confirm consent to access scopes.
      *
