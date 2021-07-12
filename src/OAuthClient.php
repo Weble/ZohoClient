@@ -303,8 +303,6 @@ class OAuthClient
             ]);
         }
 
-        dump($this);
-
         return $this;
     }
 
