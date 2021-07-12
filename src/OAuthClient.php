@@ -463,8 +463,6 @@ class OAuthClient
             $this->generateTokensFromGrantToken();
             $token = $this->accessToken->getRefreshToken();
 
-            dump($token);
-
             if ($token) {
                 $this->refreshToken = $token;
 
