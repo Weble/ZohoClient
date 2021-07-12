@@ -45,6 +45,8 @@ class OAuthClient
     protected $cachePrefix = 'zoho_crm_';
     /** @var string|null */
     protected $refreshToken;
+    /** @var bool */
+    protected $prompt = true;
 
     public function __construct(string $clientId, string $clientSecret, string $region = Region::US, string $redirectUri = '')
     {
@@ -516,6 +518,19 @@ class OAuthClient
     public function offlineMode(bool $enabled = true): self
     {
         $this->offlineMode = $enabled;
+
+        return $this;
+    }
+    
+    /**
+     * During authorization prompt the user to confirm consent to access scopes.
+     *
+     * @param bool $enabled
+     * @return self
+     */
+    public function promptForConsent(bool $enabled = true): self
+    {
+        $this->prompt = $enabled;
 
         return $this;
     }
