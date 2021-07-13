@@ -29,6 +29,8 @@ class OAuthClient
     protected $scopes = ['AaaServer.profile.READ'];
     /** @var bool */
     protected $offlineMode = true;
+    /** @var bool */
+    protected $prompt = true;
     /** @var string */
     protected $state = 'test';
     /** @var string */
@@ -59,10 +61,17 @@ class OAuthClient
     public function getAuthorizationUrl(array $additionalScopes = []): string
     {
         $scopes = array_unique(array_merge($this->scopes, $additionalScopes));
-        $url = $this->provider->getAuthorizationUrl([
+
+        $options = [
             'scope' => $scopes,
             'access_type' => $this->offlineMode ? 'offline' : 'online',
-        ]);
+        ];
+
+        if($this->prompt){
+            $options['prompt'] = 'consent';
+        }
+
+        $url = $this->provider->getAuthorizationUrl($options);
 
         $this->state = $this->provider->getState();
 
@@ -516,6 +525,19 @@ class OAuthClient
     public function offlineMode(bool $enabled = true): self
     {
         $this->offlineMode = $enabled;
+
+        return $this;
+    }
+
+    /**
+     * During authorization prompt the user to confirm consent to access scopes.
+     *
+     * @param bool $enabled
+     * @return self
+     */
+    public function promptForConsent(bool $enabled = true): self
+    {
+        $this->prompt = $enabled;
 
         return $this;
     }
