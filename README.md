@@ -24,6 +24,7 @@ require_once './vendor/autoload.php';
 
 $client = new \Weble\ZohoClient\OAuthClient('{CLIENT_ID}', '{CLIENT_SECRET}', '{REGION}', '{REDIRECTURL}');
 $client->offlineMode(); // this needs to be set if you want to be able to refresh the token
+$client->promptForConsent(); // Optional setting: Prompts for user consent each time your app tries to access user credentials.
 
 // Get the url
 $client->setScopes([]); // Set the zoho scopes you need, see https://www.zoho.com/crm/developer/docs/api/v2/scopes.html
@@ -43,10 +44,12 @@ if ($state !== $_GET['state']) {
 try {
     $client->setGrantCode($_GET['code']);
     
-    // get the access token (and store it probably)
-    $token = $client->getAccessToken();
     // if you set the offline mode, you can also get the refresh token here (and store it)
     $refreshToken = $client->getRefreshToken();
+    
+    // get the access token (and store it probably)
+    $token = $client->getAccessToken();
+    
 } catch (\Exception $e) {
     // handle your exceptions
 }
