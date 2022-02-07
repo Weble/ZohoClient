@@ -16,7 +16,7 @@
   ],
   "require": {
     "php": "^7.3 || ^8.0",
-    "psr/cache": "^1.0",
+    "psr/cache": "^1.0 || ^2.0 || ^3.0",
     "league/oauth2-client": "^2.6",
     "asad/oauth2-zoho": "^1.0"
   },
