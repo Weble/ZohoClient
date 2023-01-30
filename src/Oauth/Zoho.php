@@ -14,11 +14,11 @@ class Zoho extends AsadZoho
      * The grant that was used to fetch the response can be used to provide
      * additional context.
      *
-     * @param  array $response
+     * @param  array<string,mixed> $response
      * @param  AbstractGrant $grant
-     * @return AccessTokenInterface
+     * @return ZohoAccessToken
      */
-    protected function createAccessToken(array $response, AbstractGrant $grant)
+    protected function createAccessToken(array $response, AbstractGrant $grant): ZohoAccessToken
     {
         return new ZohoAccessToken($response);
     }

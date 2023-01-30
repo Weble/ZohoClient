@@ -2,6 +2,7 @@
 
 namespace Webleit\ZohoCrmApi\Test;
 
+use Asad\OAuth2\Client\Provider\ZohoUser;
 use Cache\Adapter\PHPArray\ArrayCachePool;
 use GuzzleHttp\Psr7\Uri;
 use PHPUnit\Framework\TestCase;
@@ -11,14 +12,14 @@ use Weble\ZohoClient\OAuthClient;
 
 class ApiTest extends TestCase
 {
-    private $cachePrefix = 'testing_';
-    /**
-     * @var OAuthClient
-     */
-    protected $client;
+    private string $cachePrefix = 'testing_';
+    protected OAuthClient $client;
 
-    /** Used for Persistent in-memory storage */
-    protected static $cache = [];
+    /**
+     * Used for Persistent in-memory storage
+     * @var array<string,mixed[]> $cache
+     */
+    protected static array $cache = [];
 
     protected static function loadAuth(): stdClass
     {
@@ -27,16 +28,23 @@ class ApiTest extends TestCase
             $authFile = __DIR__ . '/config.json';
         }
 
-        $auth = json_decode(file_get_contents($authFile));
+        $contents = file_get_contents($authFile);
+        if (!$contents) {
+            return new stdClass();
+        }
+
+        $auth = json_decode($contents, null, 512, JSON_THROW_ON_ERROR);
 
         $envConfig = $_SERVER['OAUTH_CONFIG'] ?? $_ENV['OAUTH_CONFIG'] ?? null;
         if ($envConfig) {
-            $auth = json_decode($envConfig);
+
+            $auth = json_decode($envConfig, null, 512, JSON_THROW_ON_ERROR);
         }
 
+        /** @var stdClass $auth */
         $region = Region::US;
         if ($auth->region) {
-            $region = $auth->region;
+            $region = (string) $auth->region;
         }
 
         $auth->region = $region;
@@ -65,7 +73,7 @@ class ApiTest extends TestCase
     /**
      * @test
      */
-    public function canGenerateAuthUrl()
+    public function canGenerateAuthUrl(): void
     {
         $url = $this->client->getAuthorizationUrl();
         $this->assertIsString($url);
@@ -76,7 +84,7 @@ class ApiTest extends TestCase
     /**
      * @test
      */
-    public function canParseGrantTokenFromUrl()
+    public function canParseGrantTokenFromUrl(): void
     {
         $uri = new Uri('https://test.domain?code=test');
         $code = OAuthClient::parseGrantTokenFromUrl($uri);
@@ -86,7 +94,7 @@ class ApiTest extends TestCase
     /**
      * @test
      */
-    public function canGetAccessToken()
+    public function canGetAccessToken(): void
     {
         //Get Token
         $firstToken = $this->client->getAccessToken();
@@ -119,7 +127,7 @@ class ApiTest extends TestCase
     /**
      * @test
      */
-    public function canUseCache()
+    public function canUseCache(): void
     {
         $firstToken = $this->client->getAccessToken();
         $secondToken = $this->client->getAccessToken();
@@ -130,16 +138,16 @@ class ApiTest extends TestCase
     /**
      * @test
      */
-    public function canGetResourceOwner()
+    public function canGetResourceOwner(): void
     {
         $owner = $this->client->getResourceOwner();
-        $this->assertInstanceOf(\Asad\OAuth2\Client\Provider\ZohoUser::class, $owner);
+        $this->assertInstanceOf(ZohoUser::class, $owner);
     }
 
     /**
      * @test
      */
-    public function canSwitchOnline()
+    public function canSwitchOnline(): void
     {
         $this->client->onlineMode();
         $this->assertTrue($this->client->isOnline());
@@ -149,7 +157,7 @@ class ApiTest extends TestCase
     /**
      * @test
      */
-    public function canGetRegion()
+    public function canGetRegion(): void
     {
         $this->assertEquals('us', $this->client->getRegion());
     }
