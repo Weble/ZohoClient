@@ -9,4 +9,5 @@ abstract class Region
     public const CN = 'CN';
     public const IN = 'IN';
     public const AU = 'AU';
+    public const JP = 'JP';
 }
