@@ -375,8 +375,7 @@ class OAuthClient
         try {
             $grant = new RefreshToken();
             $this->accessToken = $this->provider->getAccessToken($grant, [
-                'refresh_token' => $this->getRefreshToken(),
-                'scope' => $this->scopes
+                'refresh_token' => $this->getRefreshToken()
             ]);
         } catch (IdentityProviderException $e) {
             $message = $e->getMessage();
